@@ -48,4 +48,132 @@ const spellsproutCloud = window.supabase.createClient(
   SPELLSPROUT_SUPABASE_URL,
   SPELLSPROUT_SUPABASE_KEY
 );
+  
+<script>
+(function () {
+  const cloud = window.spellsproutCloud;
+  const $ = id => document.getElementById(id);
+
+  const panel = document.createElement('section');
+  panel.className = 'card';
+  panel.style.marginBottom = '18px';
+  panel.innerHTML = `
+    <h2>Vanhemman pilvikirjautuminen</h2>
+    <p class="muted">Kirjaudu samalla sähköpostilla ja salasanalla kaikilla perheen laitteilla.</p>
+    <label for="ssEmail">Sähköposti</label>
+    <input id="ssEmail" type="email" autocomplete="username" placeholder="Sähköpostisi">
+    <label for="ssPassword">Salasana</label>
+    <input id="ssPassword" type="password" autocomplete="current-password" placeholder="Salasana">
+    <button class="primary" id="ssLogin">Kirjaudu sisään</button>
+    <p class="muted" id="ssCloudStatus" role="status">Ei vielä kirjauduttu pilveen.</p>
+  `;
+  $('practice').before(panel);
+
+  const status = $('ssCloudStatus');
+  const loginButton = $('ssLogin');
+
+  function message(text) {
+    status.textContent = text;
+  }
+
+  async function loadCloudList() {
+    const { data: { user } } = await cloud.auth.getUser();
+    if (!user) return;
+
+    const { data, error } = await cloud
+      .from('spelling_lists')
+      .select('list_name, words, created_at')
+      .eq('family_id', 'main')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      message('Pilvilistan lataus epäonnistui: ' + error.message);
+      return;
+    }
+
+    if (data) {
+      $('week').value = data.list_name || 'Viikon englanti';
+      $('list').value = data.words || '';
+      localStorage.setItem('ssData', JSON.stringify({
+        list: $('list').value,
+        week: $('week').value
+      }));
+      update();
+      message('Pilvilista ladattu. Muutokset tallentuvat kirjautuneena.');
+    } else {
+      message('Kirjautuminen onnistui. Tallenna lista, niin se tallentuu pilveen.');
+    }
+  }
+
+  loginButton.addEventListener('click', async function () {
+    const email = $('ssEmail').value.trim();
+    const password = $('ssPassword').value;
+
+    if (!email || !password) {
+      message('Täytä sähköposti ja salasana.');
+      return;
+    }
+
+    loginButton.disabled = true;
+    message('Kirjaudutaan sisään…');
+
+    const { error } = await cloud.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    loginButton.disabled = false;
+
+    if (error) {
+      message('Kirjautuminen epäonnistui. Tarkista tunnukset ja Supabasen käyttäjätili.');
+      return;
+    }
+
+    message('Kirjautuminen onnistui. Haetaan pilvilistaa…');
+    await loadCloudList();
+  });
+
+  const originalSave = window.save;
+
+  window.save = async function () {
+    originalSave();
+
+    const { data: { user }, error: authError } =
+      await cloud.auth.getUser();
+
+    if (authError || !user) {
+      message('Lista tallennettiin tähän selaimeen. Kirjaudu pilveen synkronoidaksesi sen.');
+      return;
+    }
+
+    const { error } = await cloud
+      .from('spelling_lists')
+      .upsert({
+        user_id: user.id,
+        family_id: 'main',
+        list_name: $('week').value.trim() || 'Viikon englanti',
+        words: $('list').value
+      }, { onConflict: 'family_id,list_name' });
+
+    if (error) {
+      message('Pilvitallennus epäonnistui: ' + error.message);
+      return;
+    }
+
+    message('Lista tallennettu pilveen!');
+  };
+
+  cloud.auth.getSession().then(async ({ data, error }) => {
+    if (error) {
+      message('Kirjautumistilan tarkistus epäonnistui.');
+      return;
+    }
+    if (data.session) await loadCloudList();
+  });
+})();
+</script>
+</script></body></html>
+
 </script></body></html>
