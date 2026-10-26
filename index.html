@@ -1,179 +1,374 @@
+```html
 <!doctype html>
 <html lang="fi">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SpellSprout</title>
 <style>
-body{font-family:system-ui,sans-serif;background:#f4f7f1;color:#20352b;margin:0;padding:18px}.app{max-width:700px;margin:auto}header,.card{background:#fff;border:1px solid #dce6dc;border-radius:18px;padding:20px;margin-bottom:14px}header{background:#e6f4e9}button{border:0;border-radius:12px;padding:12px 15px;margin:4px;background:#e5f2e8;color:#20352b;font:inherit;font-weight:700;cursor:pointer}.primary{background:#176b4b;color:#fff}input,textarea{box-sizing:border-box;width:100%;padding:12px;border:1px solid #cad8cc;border-radius:12px;margin:6px 0 12px;font:inherit}textarea{min-height:160px;line-height:1.6}.muted{color:#627269;font-size:14px}.hidden{display:none!important}.status{background:#edf5ee;border-radius:12px;padding:12px;margin-top:12px}
-</style></head>
-<body><main class="app">
-<header><strong>🌱 SpellSprout</strong><h1>Kuuntele. Mieti. Kirjoita.</h1><p class="muted">Harjoittele englannin sanoja ja lauseita rauhassa.</p></header>
-<nav><button onclick="show('practice')">🌱 Harjoittele</button><button onclick="show('parent')">✎ Vanhemman asetukset</button></nav>
-<section id="practice"><div class="card" id="start"><h2 id="weekTitle">Viikon englanti</h2><p class="muted">Valitse harjoitus ja kuuntele sanat tai lauseet.</p><button onclick="setMode('words')">🔤 Sanat</button><button onclick="setMode('sentences')">💬 Lauseet</button><p id="counts" class="muted"></p><button class="primary" onclick="begin()">Aloita harjoittelu →</button></div>
-<div class="card hidden" id="exercise"><p id="step" class="muted"></p><button onclick="speak()">🔊 Kuuntele</button><label for="answer">Kirjoita kuulemasi</label><input id="answer" onkeydown="if(event.key==='Enter')check()"><button class="primary" id="check" onclick="check()">Tarkista</button><div id="feedback" class="status hidden"></div><button id="next" class="primary hidden" onclick="advance()">Seuraava →</button></div>
-<div class="card hidden" id="result"><h2>Hienosti tehty! ⭐</h2><p id="resultText"></p><button onclick="back()">Harjoittele uudelleen</button></div></section>
-<section id="parent" class="hidden"><div class="card" id="gate"><h2>Vanhemman PIN</h2><p class="muted">Valitse ensimmäisellä kerralla 4–8 numeroa. PIN toimii vain tässä selaimessa.</p><input id="pin" type="password" inputmode="numeric" maxlength="8" placeholder="PIN-koodi"><button class="primary" onclick="unlock()">Jatka</button><p id="pinMsg" class="muted"></p></div>
-<div class="card hidden" id="editor"><h2>Muokkaa harjoituslistaa</h2><label for="week">Harjoituksen nimi</label><input id="week" value="Viikon englanti"><label for="list">Sanat ja lauseet, yksi per rivi</label><textarea id="list">because
+body{font-family:system-ui,sans-serif;background:#f4f7f1;color:#20352b;margin:0;padding:18px}
+.app{max-width:700px;margin:auto}
+header,.card{background:#fff;border:1px solid #dce6dc;border-radius:18px;padding:20px;margin-bottom:14px}
+header{background:#e6f4e9}
+button{border:0;border-radius:12px;padding:12px 15px;margin:4px;background:#e5f2e8;color:#20352b;font:inherit;font-weight:700;cursor:pointer}
+.primary{background:#176b4b;color:#fff}
+input,textarea{box-sizing:border-box;width:100%;padding:12px;border:1px solid #cad8cc;border-radius:12px;margin:6px 0 12px;font:inherit}
+textarea{min-height:160px;line-height:1.6}
+.muted{color:#627269;font-size:14px}
+.hidden{display:none!important}
+.status{background:#edf5ee;border-radius:12px;padding:12px;margin-top:12px;overflow-wrap:anywhere}
+</style>
+</head>
+<body>
+<main class="app">
+<header>
+<strong>🌱 SpellSprout</strong>
+<h1>Kuuntele. Mieti. Kirjoita.</h1>
+<p class="muted">Harjoittele englannin sanoja ja lauseita rauhassa.</p>
+<p class="muted" id="cloudStatus">Yhdistetään yhteiseen listaan…</p>
+</header>
+
+<nav>
+<button onclick="show('practice')">🌱 Harjoittele</button>
+<button onclick="show('parent')">✎ Vanhemman asetukset</button>
+</nav>
+
+<section id="practice">
+<div class="card" id="start">
+<h2 id="weekTitle">Viikon englanti</h2>
+<p class="muted">Valitse harjoitus ja kuuntele sanat tai lauseet.</p>
+<button onclick="setMode('words')">🔤 Sanat</button>
+<button onclick="setMode('sentences')">💬 Lauseet</button>
+<p id="counts" class="muted"></p>
+<button class="primary" onclick="begin()">Aloita harjoittelu →</button>
+</div>
+
+<div class="card hidden" id="exercise">
+<p id="step" class="muted"></p>
+<button onclick="speak()">🔊 Kuuntele</button>
+<label for="answer">Kirjoita kuulemasi</label>
+<input id="answer" autocomplete="off" onkeydown="if(event.key==='Enter')check()">
+<button class="primary" id="check" onclick="check()">Tarkista</button>
+<div id="feedback" class="status hidden"></div>
+<button id="next" class="primary hidden" onclick="advance()">Seuraava →</button>
+</div>
+
+<div class="card hidden" id="result">
+<h2>Hienosti tehty! ⭐</h2>
+<p id="resultText"></p>
+<button onclick="back()">Harjoittele uudelleen</button>
+</div>
+</section>
+
+<section id="parent" class="hidden">
+<div class="card" id="gate">
+<h2>Vanhemman kirjautuminen</h2>
+<p class="muted">Kirjaudu samalla Supabase-tilillä molemmilla vanhempien laitteilla. Lista tallennetaan yhteiseen pilvitallennukseen.</p>
+<label for="email">Sähköposti</label>
+<input id="email" type="email" autocomplete="username" placeholder="Vanhemman sähköposti">
+<label for="password">Salasana</label>
+<input id="password" type="password" autocomplete="current-password" placeholder="Supabase-salasana">
+<button class="primary" onclick="login()">Kirjaudu sisään</button>
+<button onclick="logout()">Kirjaudu ulos</button>
+<p id="loginMsg" class="muted" role="status"></p>
+</div>
+
+<div class="card hidden" id="editor">
+<h2>Muokkaa yhteistä harjoituslistaa</h2>
+<label for="week">Harjoituksen nimi</label>
+<input id="week" value="Viikon englanti" maxlength="80">
+<label for="list">Sanat ja lauseet, yksi per rivi</label>
+<textarea id="list">because
 beautiful
 different
 The weather is beautiful today.
 I went to the library after school.
-Please remember to close the door.</textarea><button class="primary" onclick="save()">Tallenna lista</button><p id="saveMsg" class="muted"></p></div></section>
-<footer class="muted">Tämä ensimmäinen versio tallentaa listan ja PIN-koodin vain tähän selaimeen. Laitteiden välinen synkronointi lisätään erikseen.</footer>
-</main><script>
-const $=id=>document.getElementById(id);let mode='words',queue=[],i=0,correct=0;
-function getItems(){return $('list').value.split(/\n/).map(s=>s.trim()).filter(Boolean).map(text=>({text,kind:/\s/.test(text)?'sentences':'words'}))}
-function update(){let a=getItems();$('counts').textContent=a.filter(x=>x.kind==='words').length+' sanaa · '+a.filter(x=>x.kind==='sentences').length+' lausetta';$('weekTitle').textContent=$('week').value||'Viikon englanti'}
-function show(v){$('practice').classList.toggle('hidden',v!=='practice');$('parent').classList.toggle('hidden',v!=='parent');if(v==='parent'){$('gate').classList.remove('hidden');$('editor').classList.add('hidden');$('pin').value='';$('pinMsg').textContent=''}}
-function setMode(m){mode=m}
-function unlock(){let p=$('pin').value,s=localStorage.getItem('ssPin');if(!/^\d{4,8}$/.test(p)){$('pinMsg').textContent='Anna 4–8 numeroa.';return}if(!s)localStorage.setItem('ssPin',p);else if(p!==s){$('pinMsg').textContent='PIN ei täsmää.';return}$('gate').classList.add('hidden');$('editor').classList.remove('hidden')}
-function save(){localStorage.setItem('ssData',JSON.stringify({list:$('list').value,week:$('week').value}));$('saveMsg').textContent='Tallennettu tähän selaimeen.';update();show('practice')}
-function begin(){update();queue=getItems().filter(x=>x.kind===mode);if(!queue.length){alert('Lisää ensin harjoiteltavia kohtia vanhemman asetuksissa.');return}i=0;correct=0;$('start').classList.add('hidden');$('result').classList.add('hidden');$('exercise').classList.remove('hidden');render()}
-function render(){$('step').textContent='Kohta '+(i+1)+' / '+queue.length;$('answer').value='';$('answer').disabled=false;$('feedback').classList.add('hidden');$('check').classList.remove('hidden');$('next').classList.add('hidden')}
-function speak(){if(!queue[i])return;if(!window.speechSynthesis){alert('Selain ei tue ääntä.');return}speechSynthesis.cancel();let u=new SpeechSynthesisUtterance(queue[i].text);u.lang='en-GB';u.rate=.82;speechSynthesis.speak(u)}
-function check(){let v=$('answer').value.trim();if(!v)return;let norm=s=>s.toLowerCase().replace(/[.!?]+$/,'').replace(/\s+/g,' ').trim(),ok=norm(v)===norm(queue[i].text);if(ok)correct++;$('feedback').textContent=ok?'✓ Oikein!':'Ei aivan. Oikea vastaus: '+queue[i].text;$('feedback').classList.remove('hidden');$('answer').disabled=true;$('check').classList.add('hidden');$('next').classList.remove('hidden');$('next').textContent=i===queue.length-1?'Tulokset →':'Seuraava →'}
-function advance(){if(i<queue.length-1){i++;render()}else{$('exercise').classList.add('hidden');$('result').classList.remove('hidden');$('resultText').textContent='Ensimmäisellä yrityksellä oikein: '+correct+'/'+queue.length}}
-function back(){$('result').classList.add('hidden');$('start').classList.remove('hidden');update()}
-try{let s=JSON.parse(localStorage.getItem('ssData')||'null');if(s){$('list').value=s.list;$('week').value=s.week}}catch(e){}update();
-</script>
+Please remember to close the door.</textarea>
+<button class="primary" onclick="save()">Tallenna yhteinen lista</button>
+<p id="saveMsg" class="muted" role="status"></p>
+<button onclick="loadCloud()">Lataa pilveen tallennettu lista</button>
+</div>
+</section>
+
+<footer class="muted">SpellSprout · Vanhempien yhteinen pilveen tallennettu harjoituslista</footer>
+</main>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-const SPELLSPROUT_SUPABASE_URL =
-  'https://qpdblotnuzolcufvboxl.supabase.co';
+const SUPABASE_URL = 'https://qpdblotnuzolcufvboxl.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_8e4G_3qHPW3rRPGQaU1E8A_gd6mgX7c';
+const cloud = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// Lisää tähän Supabasen Publishable key omasta hallintapaneelistasi.
-const SPELLSPROUT_SUPABASE_KEY = 'sb_publishable_8e4G_3qHPW3rRPGQaU1E8A_gd6mgX7c';
+const $ = id => document.getElementById(id);
+let mode = 'words', queue = [], i = 0, correct = 0, answered = false;
+let currentUser = null;
+let cloudLoaded = false;
 
-const spellsproutCloud = window.supabase.createClient(
-  SPELLSPROUT_SUPABASE_URL,
-  SPELLSPROUT_SUPABASE_KEY
-);
-  
-<script>
-(function () {
-  const cloud = window.spellsproutCloud;
-  const $ = id => document.getElementById(id);
+const sample = `because
+beautiful
+different
+The weather is beautiful today.
+I went to the library after school.
+Please remember to close the door.`;
 
-  const panel = document.createElement('section');
-  panel.className = 'card';
-  panel.style.marginBottom = '18px';
-  panel.innerHTML = `
-    <h2>Vanhemman pilvikirjautuminen</h2>
-    <p class="muted">Kirjaudu samalla sähköpostilla ja salasanalla kaikilla perheen laitteilla.</p>
-    <label for="ssEmail">Sähköposti</label>
-    <input id="ssEmail" type="email" autocomplete="username" placeholder="Sähköpostisi">
-    <label for="ssPassword">Salasana</label>
-    <input id="ssPassword" type="password" autocomplete="current-password" placeholder="Salasana">
-    <button class="primary" id="ssLogin">Kirjaudu sisään</button>
-    <p class="muted" id="ssCloudStatus" role="status">Ei vielä kirjauduttu pilveen.</p>
-  `;
-  $('practice').before(panel);
+function getItems() {
+  return $('list').value.split(/\n/)
+    .map(s => s.trim())
+    .filter(Boolean)
+    .map(text => ({text, kind:/\s/.test(text) ? 'sentences' : 'words'}));
+}
 
-  const status = $('ssCloudStatus');
-  const loginButton = $('ssLogin');
+function update() {
+  const items = getItems();
+  $('counts').textContent =
+    items.filter(x => x.kind === 'words').length + ' sanaa · ' +
+    items.filter(x => x.kind === 'sentences').length + ' lausetta';
+  $('weekTitle').textContent = $('week').value || 'Viikon englanti';
+}
 
-  function message(text) {
-    status.textContent = text;
+function show(view) {
+  $('practice').classList.toggle('hidden', view !== 'practice');
+  $('parent').classList.toggle('hidden', view !== 'parent');
+  if (view === 'parent') updateParentView();
+}
+
+function updateParentView() {
+  $('gate').classList.toggle('hidden', !!currentUser);
+  $('editor').classList.toggle('hidden', !currentUser);
+}
+
+function setMode(value) {
+  mode = value;
+}
+
+async function login() {
+  const email = $('email').value.trim();
+  const password = $('password').value;
+  $('loginMsg').textContent = 'Kirjaudutaan sisään…';
+
+  if (!email || !password) {
+    $('loginMsg').textContent = 'Anna sähköposti ja salasana.';
+    return;
   }
 
-  async function loadCloudList() {
-    const { data: { user } } = await cloud.auth.getUser();
-    if (!user) return;
+  const {data, error} = await cloud.auth.signInWithPassword({email, password});
 
-    const { data, error } = await cloud
-      .from('spelling_lists')
-      .select('list_name, words, created_at')
-      .eq('family_id', 'main')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (error) {
-      message('Pilvilistan lataus epäonnistui: ' + error.message);
-      return;
-    }
-
-    if (data) {
-      $('week').value = data.list_name || 'Viikon englanti';
-      $('list').value = data.words || '';
-      localStorage.setItem('ssData', JSON.stringify({
-        list: $('list').value,
-        week: $('week').value
-      }));
-      update();
-      message('Pilvilista ladattu. Muutokset tallentuvat kirjautuneena.');
-    } else {
-      message('Kirjautuminen onnistui. Tallenna lista, niin se tallentuu pilveen.');
-    }
+  if (error) {
+    $('loginMsg').textContent =
+      'Kirjautuminen ei onnistunut. Tarkista sähköposti ja salasana. (' +
+      error.message + ')';
+    return;
   }
 
-  loginButton.addEventListener('click', async function () {
-    const email = $('ssEmail').value.trim();
-    const password = $('ssPassword').value;
+  currentUser = data.user;
+  $('password').value = '';
+  $('loginMsg').textContent = 'Kirjautuminen onnistui.';
+  updateParentView();
+  await loadCloud();
+}
 
-    if (!email || !password) {
-      message('Täytä sähköposti ja salasana.');
-      return;
+async function logout() {
+  const {error} = await cloud.auth.signOut();
+  if (error) {
+    $('loginMsg').textContent = 'Uloskirjautuminen epäonnistui: ' + error.message;
+    return;
+  }
+  currentUser = null;
+  cloudLoaded = false;
+  $('cloudStatus').textContent = 'Kirjaudu sisään vanhempien asetuksissa.';
+  $('loginMsg').textContent = 'Olet kirjautunut ulos.';
+  updateParentView();
+}
+
+async function loadCloud() {
+  const {data: sessionData} = await cloud.auth.getSession();
+  currentUser = sessionData.session?.user || null;
+  updateParentView();
+
+  if (!currentUser) {
+    $('cloudStatus').textContent = 'Vanhemman kirjautuminen tarvitaan pilvilistan lataamiseen.';
+    return;
+  }
+
+  $('cloudStatus').textContent = 'Ladataan yhteistä listaa…';
+
+  const {data, error} = await cloud
+    .from('spelling_lists')
+    .select('list_name, words, created_at')
+    .eq('family_id', 'main')
+    .order('created_at', {ascending:false})
+    .limit(1);
+
+  if (error) {
+    $('cloudStatus').textContent = 'Pilvilistan lataus epäonnistui: ' + error.message;
+    $('saveMsg').textContent = 'Tarkista Supabasen taulu ja RLS-käyttöoikeudet.';
+    return;
+  }
+
+  if (data && data.length) {
+    const row = data[0];
+    $('week').value = row.list_name || 'Viikon englanti';
+
+    // Taulu voi palauttaa words-sarakkeen tekstinä tai JSON-taulukkona.
+    if (Array.isArray(row.words)) {
+      $('list').value = row.words.join('\n');
+    } else if (typeof row.words === 'string') {
+      try {
+        const parsed = JSON.parse(row.words);
+        $('list').value = Array.isArray(parsed) ? parsed.join('\n') : row.words;
+      } catch {
+        $('list').value = row.words;
+      }
     }
 
-    loginButton.disabled = true;
-    message('Kirjaudutaan sisään…');
+    cloudLoaded = true;
+    $('cloudStatus').textContent = '✓ Yhteinen lista ladattu pilvestä.';
+    $('saveMsg').textContent = 'Pilveen tallennettu lista on ladattu.';
+    update();
+  } else {
+    cloudLoaded = true;
+    $('cloudStatus').textContent = 'Kirjautunut. Pilvessä ei ole vielä listaa.';
+    $('saveMsg').textContent = 'Voit tallentaa ensimmäisen yhteisen listan.';
+  }
+}
 
-    const { error } = await cloud.auth.signInWithPassword({
-      email,
-      password
-    });
+async function save() {
+  if (!currentUser) {
+    $('saveMsg').textContent = 'Kirjaudu ensin sisään vanhempien asetuksissa.';
+    return;
+  }
 
-    loginButton.disabled = false;
+  const listName = $('week').value.trim() || 'Viikon englanti';
+  const words = $('list').value.split(/\n/).map(s => s.trim()).filter(Boolean);
 
-    if (error) {
-      message('Kirjautuminen epäonnistui. Tarkista tunnukset ja Supabasen käyttäjätili.');
-      return;
-    }
+  $('saveMsg').textContent = 'Tallennetaan yhteiseen pilveen…';
 
-    message('Kirjautuminen onnistui. Haetaan pilvilistaa…');
-    await loadCloudList();
-  });
+  const {error} = await cloud
+    .from('spelling_lists')
+    .upsert({
+      family_id: 'main',
+      list_name: listName,
+      words: words,
+      user_id: currentUser.id,
+      created_at: new Date().toISOString()
+    }, {onConflict:'family_id,list_name'});
 
-  const originalSave = window.save;
+  if (error) {
+    $('saveMsg').textContent = 'Tallennus epäonnistui: ' + error.message;
+    $('cloudStatus').textContent = 'Pilvitallennuksessa on virhe.';
+    return;
+  }
 
-  window.save = async function () {
-    originalSave();
+  cloudLoaded = true;
+  $('saveMsg').textContent = '✓ Lista tallennettu pilveen. Sama tili voi avata sen toisella laitteella.';
+  $('cloudStatus').textContent = '✓ Yhteinen lista tallennettu.';
+  update();
+  show('practice');
+}
 
-    const { data: { user }, error: authError } =
-      await cloud.auth.getUser();
+function begin() {
+  update();
+  queue = getItems().filter(x => x.kind === mode);
+  if (!queue.length) {
+    alert('Lisää ensin harjoiteltavia kohtia vanhemman asetuksissa.');
+    return;
+  }
+  i = 0;
+  correct = 0;
+  $('start').classList.add('hidden');
+  $('result').classList.add('hidden');
+  $('exercise').classList.remove('hidden');
+  render();
+}
 
-    if (authError || !user) {
-      message('Lista tallennettiin tähän selaimeen. Kirjaudu pilveen synkronoidaksesi sen.');
-      return;
-    }
+function render() {
+  answered = false;
+  $('step').textContent = 'Kohta ' + (i + 1) + ' / ' + queue.length;
+  $('answer').value = '';
+  $('answer').disabled = false;
+  $('feedback').classList.add('hidden');
+  $('check').classList.remove('hidden');
+  $('next').classList.add('hidden');
+}
 
-    const { error } = await cloud
-      .from('spelling_lists')
-      .upsert({
-        user_id: user.id,
-        family_id: 'main',
-        list_name: $('week').value.trim() || 'Viikon englanti',
-        words: $('list').value
-      }, { onConflict: 'family_id,list_name' });
+function speak() {
+  if (!queue[i]) return;
+  if (!window.speechSynthesis) {
+    alert('Selain ei tue puheääntä.');
+    return;
+  }
+  speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(queue[i].text);
+  utterance.lang = 'en-GB';
+  utterance.rate = 0.82;
+  speechSynthesis.speak(utterance);
+}
 
-    if (error) {
-      message('Pilvitallennus epäonnistui: ' + error.message);
-      return;
-    }
+function check() {
+  if (answered) return;
+  const value = $('answer').value.trim();
+  if (!value) return;
 
-    message('Lista tallennettu pilveen!');
-  };
+  const normalize = s => s.toLowerCase()
+    .replace(/[.!?]+$/, '').replace(/\s+/g, ' ').trim();
+  const ok = normalize(value) === normalize(queue[i].text);
 
-  cloud.auth.getSession().then(async ({ data, error }) => {
-    if (error) {
-      message('Kirjautumistilan tarkistus epäonnistui.');
-      return;
-    }
-    if (data.session) await loadCloudList();
-  });
+  if (ok) correct++;
+  $('feedback').textContent = ok
+    ? '✓ Oikein!'
+    : 'Ei aivan. Oikea vastaus: ' + queue[i].text;
+  $('feedback').classList.remove('hidden');
+  $('answer').disabled = true;
+  $('check').classList.add('hidden');
+  $('next').classList.remove('hidden');
+  $('next').textContent = i === queue.length - 1 ? 'Tulokset →' : 'Seuraava →';
+  answered = true;
+}
+
+function advance() {
+  if (i < queue.length - 1) {
+    i++;
+    render();
+  } else {
+    $('exercise').classList.add('hidden');
+    $('result').classList.remove('hidden');
+    $('resultText').textContent =
+      'Ensimmäisellä yrityksellä oikein: ' + correct + '/' + queue.length;
+  }
+}
+
+function back() {
+  $('result').classList.add('hidden');
+  $('start').classList.remove('hidden');
+  update();
+}
+
+$('list').addEventListener('input', update);
+$('week').addEventListener('input', update);
+
+// Palauta kirjautuminen, jos tällä selaimella on aktiivinen Supabase-istunto.
+cloud.auth.onAuthStateChange((_event, session) => {
+  currentUser = session?.user || null;
+  updateParentView();
+});
+
+(async function init() {
+  const {data, error} = await cloud.auth.getSession();
+  if (error) {
+    $('cloudStatus').textContent = 'Kirjautumistilan tarkistus epäonnistui.';
+    return;
+  }
+  currentUser = data.session?.user || null;
+  updateParentView();
+  update();
+
+  if (currentUser) {
+    await loadCloud();
+  } else {
+    $('cloudStatus').textContent = 'Kirjaudu vanhempien asetuksissa ladataksesi yhteisen listan.';
+  }
 })();
 </script>
-</script></body></html>
-
-</script></body></html>
+</body>
+</html>
+```
