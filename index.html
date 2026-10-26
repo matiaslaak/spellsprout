@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="fi">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SpellSprout</title>
+<style>
+body{font-family:system-ui,sans-serif;background:#f4f7f1;color:#20352b;margin:0;padding:18px}.app{max-width:700px;margin:auto}header,.card{background:#fff;border:1px solid #dce6dc;border-radius:18px;padding:20px;margin-bottom:14px}header{background:#e6f4e9}button{border:0;border-radius:12px;padding:12px 15px;margin:4px;background:#e5f2e8;color:#20352b;font:inherit;font-weight:700;cursor:pointer}.primary{background:#176b4b;color:#fff}input,textarea{box-sizing:border-box;width:100%;padding:12px;border:1px solid #cad8cc;border-radius:12px;margin:6px 0 12px;font:inherit}textarea{min-height:160px;line-height:1.6}.muted{color:#627269;font-size:14px}.hidden{display:none!important}.status{background:#edf5ee;border-radius:12px;padding:12px;margin-top:12px}
+</style></head>
+<body><main class="app">
+<header><strong>🌱 SpellSprout</strong><h1>Kuuntele. Mieti. Kirjoita.</h1><p class="muted">Harjoittele englannin sanoja ja lauseita rauhassa.</p></header>
+<nav><button onclick="show('practice')">🌱 Harjoittele</button><button onclick="show('parent')">✎ Vanhemman asetukset</button></nav>
+<section id="practice"><div class="card" id="start"><h2 id="weekTitle">Viikon englanti</h2><p class="muted">Valitse harjoitus ja kuuntele sanat tai lauseet.</p><button onclick="setMode('words')">🔤 Sanat</button><button onclick="setMode('sentences')">💬 Lauseet</button><p id="counts" class="muted"></p><button class="primary" onclick="begin()">Aloita harjoittelu →</button></div>
+<div class="card hidden" id="exercise"><p id="step" class="muted"></p><button onclick="speak()">🔊 Kuuntele</button><label for="answer">Kirjoita kuulemasi</label><input id="answer" onkeydown="if(event.key==='Enter')check()"><button class="primary" id="check" onclick="check()">Tarkista</button><div id="feedback" class="status hidden"></div><button id="next" class="primary hidden" onclick="advance()">Seuraava →</button></div>
+<div class="card hidden" id="result"><h2>Hienosti tehty! ⭐</h2><p id="resultText"></p><button onclick="back()">Harjoittele uudelleen</button></div></section>
+<section id="parent" class="hidden"><div class="card" id="gate"><h2>Vanhemman PIN</h2><p class="muted">Valitse ensimmäisellä kerralla 4–8 numeroa. PIN toimii vain tässä selaimessa.</p><input id="pin" type="password" inputmode="numeric" maxlength="8" placeholder="PIN-koodi"><button class="primary" onclick="unlock()">Jatka</button><p id="pinMsg" class="muted"></p></div>
+<div class="card hidden" id="editor"><h2>Muokkaa harjoituslistaa</h2><label for="week">Harjoituksen nimi</label><input id="week" value="Viikon englanti"><label for="list">Sanat ja lauseet, yksi per rivi</label><textarea id="list">because
+beautiful
+different
+The weather is beautiful today.
+I went to the library after school.
+Please remember to close the door.</textarea><button class="primary" onclick="save()">Tallenna lista</button><p id="saveMsg" class="muted"></p></div></section>
+<footer class="muted">Tämä ensimmäinen versio tallentaa listan ja PIN-koodin vain tähän selaimeen. Laitteiden välinen synkronointi lisätään erikseen.</footer>
+</main><script>
+const $=id=>document.getElementById(id);let mode='words',queue=[],i=0,correct=0;
+function getItems(){return $('list').value.split(/\n/).map(s=>s.trim()).filter(Boolean).map(text=>({text,kind:/\s/.test(text)?'sentences':'words'}))}
+function update(){let a=getItems();$('counts').textContent=a.filter(x=>x.kind==='words').length+' sanaa · '+a.filter(x=>x.kind==='sentences').length+' lausetta';$('weekTitle').textContent=$('week').value||'Viikon englanti'}
+function show(v){$('practice').classList.toggle('hidden',v!=='practice');$('parent').classList.toggle('hidden',v!=='parent');if(v==='parent'){$('gate').classList.remove('hidden');$('editor').classList.add('hidden');$('pin').value='';$('pinMsg').textContent=''}}
+function setMode(m){mode=m}
+function unlock(){let p=$('pin').value,s=localStorage.getItem('ssPin');if(!/^\d{4,8}$/.test(p)){$('pinMsg').textContent='Anna 4–8 numeroa.';return}if(!s)localStorage.setItem('ssPin',p);else if(p!==s){$('pinMsg').textContent='PIN ei täsmää.';return}$('gate').classList.add('hidden');$('editor').classList.remove('hidden')}
+function save(){localStorage.setItem('ssData',JSON.stringify({list:$('list').value,week:$('week').value}));$('saveMsg').textContent='Tallennettu tähän selaimeen.';update();show('practice')}
+function begin(){update();queue=getItems().filter(x=>x.kind===mode);if(!queue.length){alert('Lisää ensin harjoiteltavia kohtia vanhemman asetuksissa.');return}i=0;correct=0;$('start').classList.add('hidden');$('result').classList.add('hidden');$('exercise').classList.remove('hidden');render()}
+function render(){$('step').textContent='Kohta '+(i+1)+' / '+queue.length;$('answer').value='';$('answer').disabled=false;$('feedback').classList.add('hidden');$('check').classList.remove('hidden');$('next').classList.add('hidden')}
+function speak(){if(!queue[i])return;if(!window.speechSynthesis){alert('Selain ei tue ääntä.');return}speechSynthesis.cancel();let u=new SpeechSynthesisUtterance(queue[i].text);u.lang='en-GB';u.rate=.82;speechSynthesis.speak(u)}
+function check(){let v=$('answer').value.trim();if(!v)return;let norm=s=>s.toLowerCase().replace(/[.!?]+$/,'').replace(/\s+/g,' ').trim(),ok=norm(v)===norm(queue[i].text);if(ok)correct++;$('feedback').textContent=ok?'✓ Oikein!':'Ei aivan. Oikea vastaus: '+queue[i].text;$('feedback').classList.remove('hidden');$('answer').disabled=true;$('check').classList.add('hidden');$('next').classList.remove('hidden');$('next').textContent=i===queue.length-1?'Tulokset →':'Seuraava →'}
+function advance(){if(i<queue.length-1){i++;render()}else{$('exercise').classList.add('hidden');$('result').classList.remove('hidden');$('resultText').textContent='Ensimmäisellä yrityksellä oikein: '+correct+'/'+queue.length}}
+function back(){$('result').classList.add('hidden');$('start').classList.remove('hidden');update()}
+try{let s=JSON.parse(localStorage.getItem('ssData')||'null');if(s){$('list').value=s.list;$('week').value=s.week}}catch(e){}update();
+</script></body></html>
