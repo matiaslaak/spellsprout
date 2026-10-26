@@ -35,4 +35,17 @@ function check(){let v=$('answer').value.trim();if(!v)return;let norm=s=>s.toLow
 function advance(){if(i<queue.length-1){i++;render()}else{$('exercise').classList.add('hidden');$('result').classList.remove('hidden');$('resultText').textContent='Ensimmäisellä yrityksellä oikein: '+correct+'/'+queue.length}}
 function back(){$('result').classList.add('hidden');$('start').classList.remove('hidden');update()}
 try{let s=JSON.parse(localStorage.getItem('ssData')||'null');if(s){$('list').value=s.list;$('week').value=s.week}}catch(e){}update();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SPELLSPROUT_SUPABASE_URL =
+  'https://qpdblotnuzolcufvboxl.supabase.co';
+
+// Lisää tähän Supabasen Publishable key omasta hallintapaneelistasi.
+const SPELLSPROUT_SUPABASE_KEY = 'sb_publishable_8e4G_3qHPW3rRPGQaU1E8A_gd6mgX7c';
+
+const spellsproutCloud = window.supabase.createClient(
+  SPELLSPROUT_SUPABASE_URL,
+  SPELLSPROUT_SUPABASE_KEY
+);
 </script></body></html>
